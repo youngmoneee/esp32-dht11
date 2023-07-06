@@ -3,16 +3,16 @@
 #include <PubSubClient.h>
 #include <IRsend.h>
 
-#define DHTPIN D3
+#define DHTPIN D3  //  온습도
 #define DHTTYPE DHT11
-#define IRPIN 4
+#define IRPIN 4    //  적외선
 
-const char* tempTopic = "sensor/dev1/temp";
-const char* humidTopic = "sensor/dev1/humid";
-const char* deviceName = "dev1";
-const char* ssid = "영서💗혜진";
-const char* wifiPs = "nullS2hae";
-const char* mqtt_server = "192.168.1.104";
+const char* tempTopic = TEMP_TOPIC_NAME;
+const char* humidTopic = HUMID_TOPIC_NAME;
+const char* deviceName = DEVICE_NAME;
+const char* ssid = WIFI_SSID;
+const char* wifiPs = WIFI_PASSWD;
+const char* mqtt_server = MQTT_ADDR;
 unsigned long last = 0;
 
 WiFiClient espClient;
