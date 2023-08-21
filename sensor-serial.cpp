@@ -3,26 +3,30 @@
 #include <PubSubClient.h>
 #include <IRsend.h>
 
-#define DHTPIN D3  //  온습도
-#define DHTTYPE DHT11
-#define IRPIN 4    //  적외선
 
-const char* tempTopic = TEMP_TOPIC_NAME;
-const char* humidTopic = HUMID_TOPIC_NAME;
-const char* deviceName = DEVICE_NAME;
+#define DHTTYPE  DHT11
+#define DHTPIN   DHT_PIN_HOLE
+#define IRPIN    IR_SEND_PIN_HOLE
+
+const char* deviceName = DEVICENAME;
+const char* tempTopic = DEVICENAME/temp;
+const char* humidTopic = DEVICENAME/humid;
+const char* inputTopic = DEVICENAME/input;
+
 const char* ssid = WIFI_SSID;
-const char* wifiPs = WIFI_PASSWD;
-const char* mqtt_server = MQTT_ADDR;
+const char* wifiPs = WIFI_PW;
+const char* mqtt_server = YOUR_MQTT_SERVER;
+const char* mqtt_port =   YOUR_MQTT_PORT;
 unsigned long last = 0;
 
-WiFiClient espClient;
-PubSubClient client(espClient);
-DHT dht(DHTPIN, DHT11);
-IRsend ir(IRPIN);
+WiFiClient    espClient;
+PubSubClient  client(espClient);
+DHT           dht(DHTPIN, DHT11);
+IRsend        ir(IRPIN);
 
 void setup() {
   setWifi();
-  client.setServer(mqtt_server, 1883);
+  client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
   dht.begin();
   ir.begin();
@@ -40,8 +44,8 @@ void loop() {
     float h = dht.readHumidity();
     float t = dht.readTemperature();
     if (!isnan(h) && !isnan(t)) {
-      snprintf(temp, 20, "%f", t);
-      snprintf(humid, 20, "%f", h);
+      snprintf(temp, 20, "%.2f", t);
+      snprintf(humid, 20, "%.2f", h);
       client.publish(tempTopic, temp);
       client.publish(humidTopic, humid);
     }
@@ -49,17 +53,18 @@ void loop() {
 }
 
 void setWifi() {
-  delay(10);
+  delay(100);
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, wifiPs);
-  while (WiFi.status() != WL_CONNECTED) delay(500);
+  while (WiFi.status() != WL_CONNECTED) delay(1000);
 }
 
 void reconnect(PubSubClient& client) {
   // Loop until we're reconnected
   while (!client.connected()) {
-    if (client.connect(deviceName)) {
-      client.subscribe("dev1/#");
+    String clientId = deviceName + String(random(0xffff), HEX);
+    if (client.connect(clientId.c_str())) {
+      client.subscribe("sungwon107/input");
     } else {
       delay(500);
     }
@@ -67,12 +72,15 @@ void reconnect(PubSubClient& client) {
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
-  String tmp;
-  for (unsigned int i = 0; i < length; ++i) tmp += (char)payload[i];
-  if (strcmp(topic, "dev1/off") == 0) {
-    ir.sendLG(0x88C0051, 28);
+  char* tmp = (char *)malloc(sizeof(char) * (length + 1));
+  tmp[length] = 0;
+  if (strcmp(topic, inputTopi) == 0) {
+    for (unsigned int i = 0; i < length; ++i) tmp[i] = (char)payload[i];
+    //  if Command is on/off
+    if (strcmp(tmp, "on") == 0)
+      ir.sendLG(0x8800C40, 28);
+    else if (strcmp(tmp, "off") == 0)
+      ir.sendLG(0x88C0051, 28);
   }
-  if (strcmp(topic, "dev1/on") == 0) {
-    ir.sendLG(0x8800A0A, 28);
-  }
+  free(tmp);
 }
